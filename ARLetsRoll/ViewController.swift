@@ -1,0 +1,162 @@
+//
+//  ViewController.swift
+//  ARLetsRoll
+//
+//  Created by Destiny Sopha on 9/17/2019.
+//  Copyright © 2019 Destiny Sopha. All rights reserved.
+//
+
+import UIKit
+import SceneKit
+import ARKit
+
+class ViewController: UIViewController, ARSCNViewDelegate {
+  
+  @IBOutlet var sceneView: ARSCNView!
+  
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    
+    self.sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
+    
+    // Set the view's delegate
+    sceneView.delegate = self
+    
+    // Creating a cube
+    // let cube = SCNBox(width: 0.1, height: 0.1, length: 0.1, chamferRadius: 0.01)
+    
+    // Creating a sphere
+    //      let sphere = SCNSphere(radius: 0.2)
+    //
+    //      let material = SCNMaterial()
+    //
+    //      material.diffuse.contents = UIImage(named: "art.scnassets/8k_moon.jpg")
+    //
+    //      sphere.materials = [material]
+    //
+    //      let node = SCNNode()
+    //
+    //      node.position = SCNVector3(x: 0, y: 0.1, z: -0.5)
+    //
+    //      node.geometry = sphere
+    //
+    //      sceneView.scene.rootNode.addChildNode(node)
+    
+    sceneView.autoenablesDefaultLighting = true
+    
+    
+    //
+    // I just saved this for later. It is the code for puting the moon
+    // in your scene.It might be fun to play with.
+    //
+    //      sceneView.delegate = self
+    //      let sphere = SCNSphere(radius: 0.2)
+    //      let material = SCNMaterial()
+    //      material.diffuse.contents = UIImage(named: "art.scnassets/8k_moon.jpg")
+    //      sphere.materials = [material]
+    //      let node = SCNNode()
+    //      node.position = SCNVector3(x: 0, y: 0.1, z: -0.5)
+    //      node.geometry = sphere
+    //      sceneView.scene.rootNode.addChildNode(node)
+    //      sceneView.autoenablesDefaultLighting = true
+    //
+    
+  }
+  
+  override func viewWillAppear(_ animated: Bool) {
+    super.viewWillAppear(animated)
+    
+    
+    //      Create a session configuration
+    let configuration = ARWorldTrackingConfiguration()
+    
+    configuration.planeDetection = .horizontal
+    
+    
+    //
+    //        The following IF-ELSE code is recomennded by Angela in lesson note 28-356. It will
+    //        check to see if the phone is compatible with WorldTracking and set the configuration
+    //        based on that check. It is not required here because, we know my iPhone is compatible.
+    //
+    //        if ARWorldTrackingConfiguration.isSupported {
+    //          let configuration = ARWorldTrackingConfiguration()
+    //        }
+    //        else  {
+    //          let configuration = AROrientationTrackingConfiguration()
+    //        }
+    //
+    
+    // Run the view's session
+    sceneView.session.run(configuration)
+    
+  }
+  
+  override func viewWillDisappear(_ animated: Bool) {
+    super.viewWillDisappear(animated)
+    
+    // Pause the view's session
+    sceneView.session.pause()
+  }
+  
+  override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    if let touch = touches.first {
+      let touchLocation = touch.location(in: sceneView)
+      
+      let results = sceneView.hitTest(touchLocation, types: .existingPlaneUsingExtent)
+      
+      if let hitResult = results.first {
+        
+        // Create a new scene (Dice)
+        let diceScene = SCNScene(named: "art.scnassets/diceCollada.scn")!
+        
+        if let diceNode = diceScene.rootNode.childNode(withName: "Dice", recursively: true) {
+          
+          diceNode.position = SCNVector3(
+            x: hitResult.worldTransform.columns.3.x,
+            y: hitResult.worldTransform.columns.3.y + diceNode.boundingSphere.radius,
+            z: hitResult.worldTransform.columns.3.z)
+          
+          sceneView.scene.rootNode.addChildNode(diceNode)
+          
+          let randomX = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
+          let randomZ = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
+
+          diceNode.runAction(
+            SCNAction.rotateBy(x: CGFloat(randomX * 3),
+                               y: 0,
+                               z: CGFloat(randomZ * 3),
+                               duration: 0.5))
+        }
+      }
+    }
+  }
+  
+  
+  func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+    if anchor is ARPlaneAnchor {
+      let planeAnchor = anchor as! ARPlaneAnchor
+      
+      let plane = SCNPlane(width: CGFloat(planeAnchor.extent.x), height: CGFloat(planeAnchor.extent.z))
+      
+      let planeNode = SCNNode()
+      
+      planeNode.position = SCNVector3(x: planeAnchor.center.x, y: 0, z: planeAnchor.center.z)
+      
+      planeNode.transform = SCNMatrix4MakeRotation(-Float.pi/2, 1, 0, 0)
+      
+      let gridMaterial = SCNMaterial()
+      
+      gridMaterial.diffuse.contents = UIImage(named: "art.scnassets/grid.png")
+      
+      plane.materials = [gridMaterial]
+      
+      planeNode.geometry = plane
+      
+      node.addChildNode(planeNode)
+      
+    } else {
+      return
+    }
+  }
+  
+}
